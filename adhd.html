@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ADHD 판별기 PRO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Pretendard&display=swap');
+    body {
+      font-family: 'Pretendard', sans-serif;
+      transition: background 0.3s, color 0.3s;
+    }
+    .fade-in {
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .hidden-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hidden-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-gray-950 text-white min-h-screen flex items-center justify-center p-4">
+  <div id="loading" class="fixed inset-0 bg-black flex items-center justify-center z-50">
+    <div class="text-center animate-pulse">
+      <h1 class="text-3xl font-bold text-purple-400">로딩 중...</h1>
+    </div>
+  </div>
+
+  <div id="app" class="w-full max-w-3xl bg-gray-900 rounded-2xl shadow-2xl p-8 space-y-6 fade-in hidden">
+    <div class="flex justify-between items-center">
+      <h1 class="text-3xl font-bold text-purple-400">🧠 ADHD 판별기 PRO</h1>
+      <button id="toggle-theme" class="bg-gray-700 text-sm px-3 py-1 rounded hover:bg-gray-600 transition">🌗 테마 토글</button>
+    </div>
+
+    <div id="question-container" class="space-y-4"></div>
+
+    <div class="w-full bg-gray-700 h-2 rounded-full overflow-hidden">
+      <div id="progress-bar" class="bg-purple-500 h-full transition-all duration-300" style="width: 0%;"></div>
+    </div>
+
+    <button id="next-button" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-xl transition">다음</button>
+
+    <div id="result" class="hidden space-y-6 text-center">
+      <p class="text-2xl font-semibold text-green-400" id="result-text"></p>
+      <canvas id="result-chart" class="w-full max-w-md mx-auto"></canvas>
+
+      <div id="summary-table" class="text-left max-h-48 overflow-y-auto hidden-scrollbar mx-auto text-sm text-gray-300 max-w-xl"></div>
+
+      <div class="flex flex-wrap justify-center gap-4 mt-4">
+        <button onclick="location.reload()" class="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600">다시 하기</button>
+        <button id="copy-result" class="px-4 py-2 rounded bg-purple-700 hover:bg-purple-600">결과 링크 복사</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const questions = [
+      "일상에서 집중력이 자주 흐트러진다.",
+      "긴 설명이나 대화를 끝까지 듣기 어렵다.",
+      "자주 과제를 미룬다.",
+      "실수를 자주 한다.",
+      "자리에 오래 앉아있는 게 힘들다.",
+      "기다리는 것이 어렵다.",
+      "충동적으로 행동한다.",
+      "물건을 자주 잃어버린다.",
+      "외부 자극에 민감하게 반응한다.",
+      "계획 세우기가 어렵다.",
+      "일을 체계적으로 처리하는 것이 어렵다.",
+      "대화 중 끼어드는 경우가 있다.",
+      "집중이 필요한 활동을 회피한다.",
+      "정신없이 움직인다.",
+      "상대가 말 끝내기 전에 대답하는 경우가 있다.",
+      "정리정돈이 힘들다.",
+      "작업을 마무리하는 게 어렵다.",
+      "감정 기복이 잦다.",
+      "반복적인 일에 쉽게 싫증을 낸다.",
+      "작은 자극에도 쉽게 산만해진다."
+    ];
+
+    const container = document.getElementById('question-container');
+    const nextBtn = document.getElementById('next-button');
+    const resultDiv = document.getElementById('result');
+    const resultText = document.getElementById('result-text');
+    const resultChart = document.getElementById('result-chart');
+    const summaryTable = document.getElementById('summary-table');
+    const progressBar = document.getElementById('progress-bar');
+    const themeToggle = document.getElementById('toggle-theme');
+    const copyBtn = document.getElementById('copy-result');
+
+    let current = 0;
+    let score = 0;
+    let scores = [];
+
+    function showQuestion() {
+      container.innerHTML = `
+        <p class="text-lg font-medium">${current + 1}. ${questions[current]}</p>
+        <div class="space-y-2">
+          ${["전혀 아니다", "아니다", "보통이다", "그렇다", "매우 그렇다"].map((txt, idx) => `
+            <label class="block">
+              <input type="radio" name="answer" value="${idx}" class="mr-2" /> ${txt}
+            </label>
+          `).join("")}
+        </div>
+      `;
+      progressBar.style.width = `${(current / questions.length) * 100}%`;
+    }
+
+    nextBtn.addEventListener('click', () => {
+      const selected = document.querySelector('input[name="answer"]:checked');
+      if (!selected) return alert("응답을 선택해주세요!");
+      const value = parseInt(selected.value);
+      scores.push(value);
+      score += value;
+      current++;
+      if (current < questions.length) {
+        showQuestion();
+      } else {
+        showResult();
+      }
+    });
+
+    function showResult() {
+      container.classList.add('hidden');
+      nextBtn.classList.add('hidden');
+      progressBar.style.width = `100%`;
+      resultDiv.classList.remove('hidden');
+      summaryTable.classList.remove('hidden');
+
+      let message = "";
+      if (score <= 20) message = "ADHD 가능성은 낮습니다.";
+      else if (score <= 50) message = "약간의 ADHD 경향이 있을 수 있습니다.";
+      else message = "ADHD 가능성이 높습니다. 전문가 상담을 권장합니다.";
+
+      resultText.textContent = `총 점수: ${score}점 | ${message}`;
+
+      new Chart(resultChart, {
+        type: 'bar',
+        data: {
+          labels: questions.map((_, i) => `Q${i + 1}`),
+          datasets: [{
+            label: '응답 점수',
+            data: scores,
+            backgroundColor: 'rgba(168, 85, 247, 0.7)'
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true, max: 4 }
+          }
+        }
+      });
+
+      summaryTable.innerHTML = `<p class="mb-2 text-purple-400 font-semibold">📝 응답 요약</p>` + scores.map((val, idx) => `
+        <p><span class="text-purple-300">Q${idx + 1}:</span> ${questions[idx]} → <span class="text-green-300">${val}점</span></p>
+      `).join("");
+    }
+
+    copyBtn.addEventListener("click", () => {
+      navigator.clipboard.writeText(`${resultText.textContent} (총 점수: ${score})`);
+      alert("결과가 복사되었습니다!");
+    });
+
+    themeToggle.addEventListener("click", () => {
+      document.body.classList.toggle("bg-white");
+      document.body.classList.toggle("text-gray-900");
+      document.body.classList.toggle("bg-gray-950");
+      document.body.classList.toggle("text-white");
+    });
+
+    window.onload = () => {
+      setTimeout(() => {
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("app").classList.remove("hidden");
+        showQuestion();
+      }, 1200);
+    };
+  </script>
+</body>
+</html>

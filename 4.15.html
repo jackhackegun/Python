@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>하루 한 문장</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nanum Myeongjo', serif;
+      background: url('https://cdn.pixabay.com/photo/2018/07/01/20/38/space-3513027_960_720.jpg') no-repeat center center fixed;
+      background-size: cover;
+      animation: backgroundAnimation 30s ease-in-out infinite;
+      overflow: hidden;
+    }
+    @keyframes backgroundAnimation {
+      0% { background-position: 0 0; }
+      50% { background-position: 100% 100%; }
+      100% { background-position: 0 0; }
+    }
+    .fade {
+      transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+    }
+    .stars {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: transparent url('https://www.transparenttextures.com/patterns/stardust.png') repeat;
+      opacity: 0.3;
+      animation: shimmer 20s linear infinite;
+      z-index: 0;
+    }
+    @keyframes shimmer {
+      from { background-position: 0 0; }
+      to { background-position: 1000px 1000px; }
+    }
+    audio {
+      display: none;
+    }
+    #historyList {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body class="text-white flex flex-col items-center justify-center min-h-screen relative">
+  <div class="stars"></div>
+
+  <audio autoplay loop>
+    <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_74ff96f354.mp3?filename=sleepy-town-21688.mp3" type="audio/mpeg">
+  </audio>
+
+  <div class="bg-white/10 backdrop-blur-md p-10 rounded-3xl shadow-2xl w-full max-w-xl text-center border border-white/20 z-10">
+    <h1 class="text-4xl font-bold mb-6 text-white drop-shadow-lg animate-bounce">✨ 하루 한 문장 ✨</h1>
+    <p id="quote" class="text-2xl fade min-h-[5rem] text-white/90 italic">버튼을 눌러 오늘의 문장을 받아보세요 :)</p>
+    <button onclick="newQuote()" class="mt-6 px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white font-semibold text-lg rounded-full shadow-md transition-all duration-300">문장 받기</button>
+
+    <div class="mt-8">
+      <input id="customQuote" type="text" placeholder="나만의 문장을 입력해보세요 :)" class="w-full px-4 py-2 rounded-lg bg-white/20 text-white placeholder-white/60 focus:outline-none">
+      <button onclick="addCustomQuote()" class="mt-3 w-full px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-lg transition-all">문장 추가하기</button>
+    </div>
+  </div>
+
+  <div class="mt-6 text-sm text-white/60 z-10">
+    방문자 수: <span id="visitorCount">0</span>
+  </div>
+
+  <div class="absolute bottom-4 right-4 text-sm z-10">
+    <button onclick="likeQuote()" class="flex items-center space-x-1 px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-full">
+      ❤️ <span id="likeCount">0</span>
+    </button>
+  </div>
+
+  <div class="mt-6 text-white/80">
+    <h2 class="text-xl mb-4">문장 히스토리</h2>
+    <ul id="historyList" class="list-disc pl-5 space-y-2">
+    </ul>
+  </div>
+
+  <div class="mt-8">
+    <button onclick="downloadQuote()" class="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-all">문장 다운로드</button>
+  </div>
+
+  <div class="absolute top-4 left-4 text-sm z-10">
+    <button onclick="scheduleQuote()" class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-full">
+      🕒 예약 문장
+    </button>
+  </div>
+
+  <div class="mt-6 text-sm text-white/60 z-10">
+    랜덤 댓글: <span id="randomComment"></span>
+  </div>
+
+  <script>
+    let quotes = [
+      "너는 오늘도 잘하고 있어.",
+      "조금 느려도 괜찮아, 나아가고 있으니까.",
+      "힘들 땐 잠깐 멈춰도 돼.",
+      "네가 웃을 수 있으면, 그걸로 충분해.",
+      "세상이 너를 몰라도, 나는 알고 있어.",
+      "오늘 하루도 버텨줘서 고마워.",
+      "밤하늘이 어두울수록 별은 더 빛나.",
+      "작은 숨 하나에도 의미가 있어.",
+      "당신의 존재는 이 세상에 꼭 필요해."
+    ];
+
+    const savedQuotes = JSON.parse(localStorage.getItem('customQuotes')) || [];
+    quotes = quotes.concat(savedQuotes);
+
+    const randomComments = [
+      "너무 멋진 문장! 😍",
+      "이 말 듣고 힘낼게요. 감사합니다! 🙏",
+      "와... 이 문장은 내 마음속에 그대로 들어왔어요. 💖",
+      "매일 이 문장만 보고 싶어요! 😄",
+      "이거 나랑 똑같은 기분! 👍"
+    ];
+
+    function typeText(el, text, i = 0) {
+      if (i === 0) el.innerText = '';
+      if (i < text.length) {
+        el.innerText += text.charAt(i);
+        setTimeout(() => typeText(el, text, i + 1), 50);
+      }
+    }
+
+    function newQuote() {
+      const quoteEl = document.getElementById('quote');
+      quoteEl.style.opacity = 0;
+      quoteEl.style.transform = 'translateY(10px)';
+      setTimeout(() => {
+        const quote = quotes[Math.floor(Math.random() * quotes.length)];
+        quoteEl.style.opacity = 1;
+        quoteEl.style.transform = 'translateY(0)';
+        typeText(quoteEl, quote);
+        localStorage.setItem('currentQuote', quote);
+        localStorage.setItem('likeCount', '0');
+        document.getElementById('likeCount').innerText = '0';
+        addHistory(quote);
+        showRandomComment();
+      }, 300);
+    }
+
+    function addHistory(quote) {
+      const historyList = document.getElementById('historyList');
+      const newHistoryItem = document.createElement('li');
+      newHistoryItem.textContent = quote;
+      historyList.appendChild(newHistoryItem);
+    }
+
+    function addCustomQuote() {
+      const input = document.getElementById('customQuote');
+      const newQuote = input.value.trim();
+      if (newQuote) {
+        quotes.push(newQuote);
+        savedQuotes.push(newQuote);
+        localStorage.setItem('customQuotes', JSON.stringify(savedQuotes));
+        input.value = '';
+        alert('문장이 추가되었습니다!');
+      }
+    }
+
+    function downloadQuote() {
+      const quote = document.getElementById('quote').innerText;
+      const blob = new Blob([quote], { type: 'text/plain' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'quote.txt';
+      link.click();
+    }
+
+    function scheduleQuote() {
+      const quote = quotes[Math.floor(Math.random() * quotes.length)];
+      localStorage.setItem('scheduledQuote', quote);
+      alert('예약된 문장: ' + quote);
+    }
+
+    function showRandomComment() {
+      const randomComment = randomComments[Math.floor(Math.random() * randomComments.length)];
+      document.getElementById('randomComment').innerText = randomComment;
+    }
+
+    function likeQuote() {
+      let count = parseInt(localStorage.getItem('likeCount')) || 0;
+      count++;
+      localStorage.setItem('likeCount', count);
+      document.getElementById('likeCount').innerText = count;
+    }
+
+    let count = localStorage.getItem('visitorCount');
+    if (!count) {
+      count = 1;
+    } else {
+      count = parseInt(count) + 1;
+    }
+    localStorage.setItem('visitorCount', count);
+    document.getElementById('visitorCount').innerText = count;
+
+    const lastQuote = localStorage.getItem('currentQuote');
+    const likeCount = localStorage.getItem('likeCount') || 0;
+    if (lastQuote) {
+      typeText(document.getElementById('quote'), lastQuote);
+    }
+    document.getElementById('likeCount').innerText = likeCount;
+  </script>
+</body>
+</html>

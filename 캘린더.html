@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>개인 성장 및 생산성 향상</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f4f4f9;
+            color: #333;
+        }
+        header {
+            background: #2E3B4E;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+        section {
+            padding: 2rem;
+            margin: 1rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        button {
+            padding: 0.5rem 1rem;
+            margin-top: 1rem;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        li {
+            padding: 0.5rem 0;
+        }
+        #progress-list, #goal-list, #checklist {
+            margin-top: 1rem;
+        }
+        .timer {
+            font-size: 2rem;
+            margin-top: 1rem;
+        }
+        .quote {
+            font-style: italic;
+            margin-top: 1rem;
+            color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>개인 성장 및 생산성 향상</h1>
+</header>
+
+<!-- 목표 설정 -->
+<section>
+    <h2>목표 설정</h2>
+    <input type="text" id="goal-input" placeholder="목표를 입력하세요">
+    <textarea id="goal-description" placeholder="목표에 대한 설명을 입력하세요" rows="4"></textarea>
+    <button onclick="addGoal()">목표 추가</button>
+    <ul id="goal-list"></ul>
+</section>
+
+<!-- 타임 블로킹 -->
+<section>
+    <h2>타임 블로킹</h2>
+    <input type="time" id="start-time">
+    <input type="time" id="end-time">
+    <input type="text" id="task-name" placeholder="작업명을 입력하세요">
+    <button onclick="addTimeBlock()">타임 블록 추가</button>
+    <ul id="time-blocks"></ul>
+</section>
+
+<!-- Pomodoro 타이머 -->
+<section>
+    <h2>집중력 향상 타이머</h2>
+    <button onclick="startPomodoro()">Pomodoro 타이머 시작</button>
+    <div id="pomodoro-timer" class="timer">25:00</div>
+</section>
+
+<!-- 자기 개선 피드백 -->
+<section>
+    <h2>자기 개선 피드백</h2>
+    <textarea id="self-feedback" placeholder="오늘의 성과를 기록하세요" rows="4"></textarea>
+    <button onclick="submitFeedback()">피드백 제출</button>
+    <ul id="feedback-list"></ul>
+</section>
+
+<!-- 동기 부여 메시지 -->
+<section>
+    <h2>동기 부여 메시지</h2>
+    <button onclick="getMotivation()">오늘의 동기 부여 메시지</button>
+    <p id="motivation-message" class="quote"></p>
+</section>
+
+<script>
+    // 목표 설정
+    function addGoal() {
+        const goalInput = document.getElementById("goal-input").value;
+        const goalDescription = document.getElementById("goal-description").value;
+        if (goalInput && goalDescription) {
+            const goalList = document.getElementById("goal-list");
+            const listItem = document.createElement("li");
+            listItem.innerHTML = `<strong>${goalInput}</strong>: ${goalDescription}`;
+            goalList.appendChild(listItem);
+            document.getElementById("goal-input").value = "";
+            document.getElementById("goal-description").value = "";
+        }
+    }
+
+    // 타임 블로킹
+    function addTimeBlock() {
+        const startTime = document.getElementById("start-time").value;
+        const endTime = document.getElementById("end-time").value;
+        const taskName = document.getElementById("task-name").value;
+        if (startTime && endTime && taskName) {
+            const timeBlocks = document.getElementById("time-blocks");
+            const listItem = document.createElement("li");
+            listItem.innerHTML = `${startTime} - ${endTime}: ${taskName}`;
+            timeBlocks.appendChild(listItem);
+            document.getElementById("start-time").value = "";
+            document.getElementById("end-time").value = "";
+            document.getElementById("task-name").value = "";
+        }
+    }
+
+    // Pomodoro 타이머
+    let timer;
+    let minutes = 25;
+    let seconds = 0;
+    function startPomodoro() {
+        clearInterval(timer);
+        timer = setInterval(function() {
+            if (seconds === 0) {
+                if (minutes === 0) {
+                    clearInterval(timer);
+                    alert("Pomodoro 시간 종료! 휴식을 취하세요.");
+                    minutes = 25;
+                    seconds = 0;
+                    document.getElementById("pomodoro-timer").innerHTML = `${minutes}:00`;
+                    return;
+                } else {
+                    minutes--;
+                    seconds = 59;
+                }
+            } else {
+                seconds--;
+            }
+            document.getElementById("pomodoro-timer").innerHTML = `${minutes}:${seconds < 10 ? "0" + seconds : seconds}`;
+        }, 1000);
+    }
+
+    // 자기 개선 피드백
+    function submitFeedback() {
+        const feedback = document.getElementById("self-feedback").value;
+        if (feedback) {
+            const feedbackList = document.getElementById("feedback-list");
+            const listItem = document.createElement("li");
+            listItem.textContent = feedback;
+            feedbackList.appendChild(listItem);
+            document.getElementById("self-feedback").value = "";
+        }
+    }
+
+    // 동기 부여 메시지
+    function getMotivation() {
+        const messages = [
+            "오늘도 목표를 향해 한 걸음 나아가세요!",
+            "작은 습관이 큰 변화를 만듭니다. 지금 시작하세요.",
+            "오늘은 어제보다 더 나은 자신을 만날 수 있습니다.",
+            "포기하지 마세요. 성공은 당신을 기다리고 있습니다."
+        ];
+        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+        document.getElementById("motivation-message").textContent = randomMessage;
+    }
+</script>
+
+</body>
+</html>

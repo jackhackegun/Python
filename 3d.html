@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 이미지 뷰어</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        #canvas {
+            display: block;
+        }
+        .file-input {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <input type="file" class="file-input" id="image-input" accept="image/*">
+    <canvas id="canvas"></canvas>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer, texture, mesh, controls;
+
+        // 장면, 카메라, 렌더러 초기화
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas') });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            // 카메라 위치 설정
+            camera.position.z = 5;
+
+            // 조명 추가
+            const light = new THREE.AmbientLight(0x404040); // 부드러운 흰색 빛
+            scene.add(light);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(1, 1, 1).normalize();
+            scene.add(directionalLight);
+
+            animate();
+        }
+
+        // 이미지 업로드 처리
+        document.getElementById('image-input').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imageUrl = e.target.result;
+                    create3DImage(imageUrl);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 3D 이미지 생성
+        function create3DImage(imageUrl) {
+            if (mesh) {
+                scene.remove(mesh); // 기존의 3D 이미지가 있다면 제거
+            }
+
+            const loader = new THREE.TextureLoader();
+            texture = loader.load(imageUrl);
+
+            const geometry = new THREE.PlaneGeometry(4, 4);
+            const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
+            mesh = new THREE.Mesh(geometry, material);
+
+            scene.add(mesh);
+        }
+
+        // 애니메이션 루프
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (mesh) {
+                mesh.rotation.x += 0.01;
+                mesh.rotation.y += 0.01;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // 화면 크기 조정 시 카메라와 렌더러 업데이트
+        window.addEventListener('resize', function() {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+
+        // 초기화
+        init();
+    </script>
+</body>
+</html>
